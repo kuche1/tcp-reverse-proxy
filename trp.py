@@ -11,13 +11,13 @@ from socket import socket, SOL_SOCKET, SO_REUSEADDR, SHUT_RDWR
 from threading import Thread, Lock
 import time
 from pathlib import Path
+import shutil
 
 RECV_LEN = 1024
 LOOP_SLEEP = 0 # even a sleep of "0" seconds is enough to reduce the CPU usage from 8% to 0.6%
 
-FOLDER_HERE = Path(__file__).parent
-FOLDER_IP_TRANSLATIONS = FOLDER_HERE / 'ip-translations'
-FILE_NEXT_AVAILABLE_FAKE_IP = FOLDER_IP_TRANSLATIONS / 'next-available'
+FOLDER_IP_TRANSLATIONS = Path(__file__).parent / 'ip-translations'
+FILE_NEXT_FAKE_IP = FOLDER_IP_TRANSLATIONS / 'next-available'
 
 FIRST_FAKE_IP = '127.0.0.2'
 EMERGENCY_FAKE_IP = '127.0.0.1'
@@ -35,10 +35,10 @@ def run_from_cmdline():
     main((args.bind_host, args.bind_port), args.server_port)
 
 def main(bind_addr, server_port):
-    FOLDER_IP_TRANSLATIONS.mkdir(exist_ok=True)
+    shutil.rmtree(FOLDER_IP_TRANSLATIONS)
 
-    if not FILE_NEXT_AVAILABLE_FAKE_IP.exists():
-        FILE_NEXT_AVAILABLE_FAKE_IP.write_text(FIRST_FAKE_IP)
+    FOLDER_IP_TRANSLATIONS.mkdir()
+    FILE_NEXT_FAKE_IP.write_text(FIRST_FAKE_IP)
 
     fake_ip_lock = Lock()
 
@@ -116,7 +116,7 @@ def get_client_fake_ip(client_ip, lock):
 
         try:
             
-            current_fake_ip = FILE_NEXT_AVAILABLE_FAKE_IP.read_text()
+            current_fake_ip = FILE_NEXT_FAKE_IP.read_text()
 
             if current_fake_ip == EMERGENCY_FAKE_IP:
                 # don't calc next fake ip
@@ -148,7 +148,7 @@ def get_client_fake_ip(client_ip, lock):
             else:
                 next_fake_ip = f'{a}.{b}.{c}.{d}'
                         
-            FILE_NEXT_AVAILABLE_FAKE_IP.write_text(next_fake_ip)
+            FILE_NEXT_FAKE_IP.write_text(next_fake_ip)
 
             file_client.write_text(current_fake_ip)
 
@@ -160,12 +160,10 @@ def get_client_fake_ip(client_ip, lock):
 
 def get_next_fake_ip(lock):
     lock.acquire()
-    try:
 
-        if not FILE_NEXT_AVAILABLE_FAKE_IP.exists():
-            FILE_NEXT_AVAILABLE_FAKE_IP.write_text(FIRST_FAKE_IP)
+    try:
         
-        current_ip = FILE_NEXT_AVAILABLE_FAKE_IP.read_text()
+        current_ip = FILE_NEXT_FAKE_IP.read_text()
 
         a, b, c, d = current_ip.split('.')
         a = int(a)
@@ -193,11 +191,12 @@ def get_next_fake_ip(lock):
         else:
             next_ip = f'{a}.{b}.{c}.{d}'
                     
-        FILE_NEXT_AVAILABLE_FAKE_IP.write_text(next_ip)
+        FILE_NEXT_FAKE_IP.write_text(next_ip)
         
         return current_ip
 
     finally:
+
         lock.release()
 
 if __name__ == '__main__':
