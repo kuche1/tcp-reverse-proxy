@@ -3,7 +3,7 @@
 # TODO
 # limit bandwidth
 # handle SIGTERM
-# fix (? is this still a problem ?): socket close happens super late
+# I really wanted to use the trick where we can peek the msg, then send whatever be sent, then recv the actually sent stuff, but I got (ValueError: non-zero flags not allowed in calls to recv() on <class 'ssl.SSLSocket'>)
 
 import argparse
 from socket import socket, SOL_SOCKET, SO_REUSEADDR, SHUT_RDWR
