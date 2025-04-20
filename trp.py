@@ -53,13 +53,20 @@ def main(bind_addr, server_port):
     sock.close()
 
 def handle_client(client, client_addr, server_port, fake_ip_lock):
+    try:
+        handle_client_2(client, client_addr, server_port, fake_ip_lock)
+    finally:
+        client.shutdown(SHUT_RDWR)
+        client.close()
+
+def handle_client_2(client, client_addr, server_port, fake_ip_lock):
     client_ip, _client_port = client_addr
 
-    print(f'{client_addr}: ---> connect')
+    print(f'{client_addr}: ---> connected')
 
     client_ip_faked = get_client_fake_ip(client_ip, fake_ip_lock)
 
-    print(f'{client_addr}: -~-> faked ip {client_ip_faked}')
+    print(f'{client_addr}: -~-> selected faked ip {client_ip_faked}')
 
     server = socket()
 
@@ -70,7 +77,7 @@ def handle_client(client, client_addr, server_port, fake_ip_lock):
     try:
         server.connect(('localhost', server_port))
     except ConnectionRefusedError:
-        print(f'{client_addr}: -x-> server refused connection')
+        print(f'{client_addr}: -~->x server refused connection')
         return
 
     running = True
@@ -95,16 +102,13 @@ def handle_client(client, client_addr, server_port, fake_ip_lock):
                 break
 
             if sock == client:
-                print(f'{client_addr}: [{len(data)} B] -~-> server')
+                print(f'{client_addr}: ~-~> send {len(data)}[B] to server')
                 server.sendall(data)
-                print(f'{client_addr}: [{len(data)} B] -v-> server')
+                print(f'{client_addr}: ~v~> send {len(data)}[B] to server')
             else:
-                print(f'{client_addr}: <-~- [{len(data)} B] server')
+                print(f'{client_addr}: <~-~ recv {len(data)}[B] from server')
                 client.sendall(data)
-                print(f'{client_addr}: <-v- [{len(data)} B] server')
-
-    client.shutdown(SHUT_RDWR)
-    client.close()
+                print(f'{client_addr}: <~v~ recv {len(data)}[B] from server')
 
     server.shutdown(SHUT_RDWR)
     server.close()
