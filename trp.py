@@ -5,12 +5,10 @@
 # limit bandwidth
 # handle SIGTERM
 # fix: socket close happens super late
-# fix: cpu usage is too high
 
 import argparse
-from socket import socket, SOL_SOCKET, SO_REUSEADDR, SHUT_RDWR, MSG_DONTWAIT
+from socket import socket, SOL_SOCKET, SO_REUSEADDR, SHUT_RDWR
 from threading import Thread, Lock
-import time
 from pathlib import Path
 import shutil
 import select
@@ -75,7 +73,7 @@ def handle_client(client, client_addr, server_port, fake_ip_lock):
         read_list = [client, server]
         write_list = [] # [client, server]
         except_list = [] # [client, server]
-        readable, _writeble, errored = select.select(read_list, write_list, except_list)
+        readable, _writeble, _errored = select.select(read_list, write_list, except_list)
         # ideally we would check if the target socket is writable
 
         for sock in readable:
