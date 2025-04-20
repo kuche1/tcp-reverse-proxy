@@ -1,10 +1,11 @@
 #! /usr/bin/env python3
 
 # TODO
-# add support for encrypted TCP dest
+# add support for encrypted TCP dest (wtf why is this working, need to run some tests)
 # limit bandwidth
 # handle SIGTERM
-# fix: socket close happens super late
+# fix (? is this still a problem ?): socket close happens super late
+# add support for encrypted tcp reverse proxy
 
 import argparse
 from socket import socket, SOL_SOCKET, SO_REUSEADDR, SHUT_RDWR
