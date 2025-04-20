@@ -86,7 +86,16 @@ def main(bind_addr, server_port:int, encrypt:bool, keyfile:str|None, certfile:st
     sock.listen()
 
     while True:
-        con, con_addr = sock.accept() # TODO ssl.SSLError # TODO we could actually try to accept a regular connection, and if that doesn't work, we could try to wrap the socket then accept again
+
+        try:
+            con, con_addr = sock.accept() # TODO we could actually try to accept a regular connection, and if that doesn't work, we could try to wrap the socket then accept again
+        except ssl.SSLError as err: # not sure what causes this
+            print(f'could not accept: ssl.SSLError: {err}')
+            continue
+        except Exception as err: # just in case
+            print(f'could not accept: Exception: {err}')
+            continue
+
         Thread(target=handle_client, args=(con, con_addr, server_port, fake_ip_lock)).start()
     
     sock.close()
