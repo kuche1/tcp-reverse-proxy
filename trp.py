@@ -133,7 +133,7 @@ def handle_client_2(client, client_addr, server_port:int, server_encrypted:bool,
         # # ssl_context = ssl._create_unverified_context() # this SHOULD work when connecting to server with selfsigned cert (not tested)
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ssl_context.check_hostname = False
-        #ssl_context.verify_mode = ssl.CERT_NONE
+        ssl_context.verify_mode = ssl.CERT_NONE
 
         server = ssl_context.wrap_socket(
             server,
