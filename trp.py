@@ -34,8 +34,8 @@ def run_from_cmdline():
     parser.add_argument('server_port', type=int, help='port of server')
 
     parser.add_argument('--encrypt',            action='store_true', help='weather to encrypt the connection between the client and the reverse proxy')
-    parser.add_argument('--keyfile',  type=str,                      help='keyfile to use for encryption')
-    parser.add_argument('--certfile', type=str,                      help='certfile to use for encryption')
+    parser.add_argument('--keyfile',  type=str,                      help='keyfile to use for encryption, example: privkey.pem')
+    parser.add_argument('--certfile', type=str,                      help='certfile to use for encryption, example: cert.pem')
 
     args = parser.parse_args()
 
@@ -64,8 +64,8 @@ def main(bind_addr, server_port:int, encrypt:bool, keyfile:str|None, certfile:st
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER) # Auto-negotiate the highest protocol version that both the client and server support, and configure the context server-side connections.
 
         ssl_context.load_cert_chain(
-            certfile=certfile, # cert.pem
-            keyfile=keyfile, # key.pem
+            certfile=certfile, # cert.pem / certificate.crt
+            keyfile=keyfile, # privkey.pem / private.key
         )
 
         sock = ssl_context.wrap_socket(
