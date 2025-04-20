@@ -89,7 +89,7 @@ def main(bind_addr, server_port:int, encrypt:bool, keyfile:str|None, certfile:st
 
         try:
             con, con_addr = sock.accept() # TODO we could actually try to accept a regular connection, and if that doesn't work, we could try to wrap the socket then accept again
-        except ssl.SSLError as err: # not sure what causes this
+        except ssl.SSLError as err: # not sure what causes this but I've seen it
             print(f'could not accept: ssl.SSLError: {err}')
             continue
         except Exception as err: # just in case
