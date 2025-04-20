@@ -5,7 +5,7 @@
 # limit bandwidth
 # handle SIGTERM
 # fix (? is this still a problem ?): socket close happens super late
-# add support for encrypted tcp reverse proxy
+# add support for server that is encrypted
 
 import argparse
 from socket import socket, SOL_SOCKET, SO_REUSEADDR, SHUT_RDWR
@@ -31,7 +31,8 @@ def run_from_cmdline():
     parser.add_argument('bind_port', type=int, help='port to bind to')
 
     # parser.add_argument('server_host', type=str, help='host of server') # host HAS TO BE localhost, otherwise the 127.x.x.x trick will not work
-    parser.add_argument('server_port', type=int, help='port of server')
+    parser.add_argument('server_port',      type=int,                      help='port of server')
+    parser.add_argument('server_encrypted',           action='store_true', help='weather server uses plain or encrypted TCP')
 
     parser.add_argument('--encrypt',            action='store_true', help='weather to encrypt the connection between the client and the reverse proxy')
     parser.add_argument('--keyfile',  type=str,                      help='keyfile to use for encryption, example: privkey.pem')
@@ -44,9 +45,16 @@ def run_from_cmdline():
             print(f'if you want encryption you need to specify both keyfile and certfile')
             sys.exit(1)
 
-    main((args.bind_host, args.bind_port), args.server_port, args.encrypt, args.keyfile, args.certfile)
+    main(
+        (args.bind_host, args.bind_port),
+        args.server_port, args.server_encrypted,
+        args.encrypt, args.keyfile, args.certfile)
 
-def main(bind_addr, server_port:int, encrypt:bool, keyfile:str|None, certfile:str|None):
+def main(
+        bind_addr,
+        server_port:int, server_encrypted:bool,
+        encrypt:bool, keyfile:str|None, certfile:str|None
+    ):
 
     shutil.rmtree(FOLDER_IP_TRANSLATIONS, ignore_errors=True)
 
@@ -96,18 +104,18 @@ def main(bind_addr, server_port:int, encrypt:bool, keyfile:str|None, certfile:st
             print(f'could not accept: Exception: {err}')
             continue
 
-        Thread(target=handle_client, args=(con, con_addr, server_port, fake_ip_lock)).start()
+        Thread(target=handle_client, args=(con, con_addr, server_port, server_encrypted, fake_ip_lock)).start()
     
     sock.close()
 
-def handle_client(client, client_addr, server_port, fake_ip_lock):
+def handle_client(client, client_addr, server_port:int, server_encrypted:bool, fake_ip_lock):
     try:
-        handle_client_2(client, client_addr, server_port, fake_ip_lock)
+        handle_client_2(client, client_addr, server_port, server_encrypted, fake_ip_lock)
     finally:
         client.shutdown(SHUT_RDWR)
         client.close()
 
-def handle_client_2(client, client_addr, server_port, fake_ip_lock):
+def handle_client_2(client, client_addr, server_port:int, server_encrypted:bool, fake_ip_lock):
     client_ip, _client_port = client_addr
 
     print(f'{client_addr}: ---> connected')
@@ -119,6 +127,14 @@ def handle_client_2(client, client_addr, server_port, fake_ip_lock):
     server = socket()
 
     server.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+
+    if server_encrypted:
+        ssl_context = ssl.create_default_context()
+
+        sock = ssl_context.wrap_socket(
+            sock,
+            server_side=False,
+        )
 
     server.bind((client_ip_faked, 0))
 
