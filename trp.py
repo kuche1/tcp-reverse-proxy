@@ -16,7 +16,7 @@ import select
 import ssl
 import sys
 
-RECV_LEN = 1024 * 1 # 1KiB
+RECV_LEN = 1024 * 2 # 2 KiB
 
 FOLDER_IP_TRANSLATIONS = Path(__file__).parent / 'ip-translations'
 FILE_NEXT_FAKE_IP = FOLDER_IP_TRANSLATIONS / 'next-available'
@@ -131,6 +131,7 @@ def handle_client_2(client, client_addr, server_port:int, server_encrypted:bool,
     if server_encrypted:
         # ssl_context = ssl.create_default_context()
         # # ssl_context = ssl._create_unverified_context() # this SHOULD work when connecting to server with selfsigned cert (not tested)
+
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
