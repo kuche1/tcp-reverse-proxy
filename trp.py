@@ -77,9 +77,9 @@ def handle_client(client, client_addr, server_port, fake_ip_lock):
             if len(data) == 0: # disconnect
                 break
 
-            print(f'{client_addr}: {len(data)} -~->')
+            print(f'{client_addr}: [{len(data)}B] -~->')
             server.sendall(data)
-            print(f'{client_addr}: {len(data)} -v->')
+            print(f'{client_addr}: [{len(data)}B] -v->')
         
         try:
             data = server.recv(RECV_LEN, MSG_DONTWAIT)
@@ -89,9 +89,9 @@ def handle_client(client, client_addr, server_port, fake_ip_lock):
             if len(data) == 0: # disconnect
                 break
 
-            print(f'{client_addr}: <-~- {len(data)}')
+            print(f'{client_addr}: <-~- [{len(data)}B]')
             client.sendall(data)
-            print(f'{client_addr}: <-v- {len(data)}')
+            print(f'{client_addr}: <-v- [{len(data)}B]')
 
         time.sleep(LOOP_SLEEP)
 
