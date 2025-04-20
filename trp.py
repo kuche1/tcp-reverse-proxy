@@ -13,7 +13,7 @@ import time
 from pathlib import Path
 import shutil
 
-RECV_LEN = 1024 * 1024 # in bytes
+RECV_LEN = 1024 # bytes
 LOOP_SLEEP = 0 # even a sleep of "0" seconds is enough to reduce the CPU usage from 8% to 0.6%
 
 FOLDER_IP_TRANSLATIONS = Path(__file__).parent / 'ip-translations'
@@ -77,9 +77,9 @@ def handle_client(client, client_addr, server_port, fake_ip_lock):
             if len(data) == 0: # disconnect
                 break
 
-            print(f'{client_addr}: [{len(data)}B] -~->')
+            print(f'{client_addr}: [{len(data)} B] -~->')
             server.sendall(data)
-            print(f'{client_addr}: [{len(data)}B] -v->')
+            print(f'{client_addr}: [{len(data)} B] -v->')
         
         try:
             data = server.recv(RECV_LEN, MSG_DONTWAIT)
@@ -89,9 +89,9 @@ def handle_client(client, client_addr, server_port, fake_ip_lock):
             if len(data) == 0: # disconnect
                 break
 
-            print(f'{client_addr}: <-~- [{len(data)}B]')
+            print(f'{client_addr}: <-~- [{len(data)} B]')
             client.sendall(data)
-            print(f'{client_addr}: <-v- [{len(data)}B]')
+            print(f'{client_addr}: <-v- [{len(data)} B]')
 
         time.sleep(LOOP_SLEEP)
 
