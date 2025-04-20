@@ -5,6 +5,9 @@
 # limit bandwidth
 # handle SIGTERM
 # clean the ips on startup
+# use select
+# fix: socket close happens super late
+# fix: cpu usage is too high
 
 import argparse
 from socket import socket, SOL_SOCKET, SO_REUSEADDR, SHUT_RDWR, MSG_DONTWAIT
@@ -13,8 +16,8 @@ import time
 from pathlib import Path
 import shutil
 
-RECV_LEN = 1024 # bytes
-LOOP_SLEEP = 0 # even a sleep of "0" seconds is enough to reduce the CPU usage from 8% to 0.6%
+RECV_LEN = 1024 * 2 # 2KiB
+LOOP_SLEEP = 0.001
 
 FOLDER_IP_TRANSLATIONS = Path(__file__).parent / 'ip-translations'
 FILE_NEXT_FAKE_IP = FOLDER_IP_TRANSLATIONS / 'next-available'
