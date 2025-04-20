@@ -35,7 +35,7 @@ def run_from_cmdline():
     main((args.bind_host, args.bind_port), args.server_port)
 
 def main(bind_addr, server_port):
-    shutil.rmtree(FOLDER_IP_TRANSLATIONS)
+    shutil.rmtree(FOLDER_IP_TRANSLATIONS, ignore_errors=True)
 
     FOLDER_IP_TRANSLATIONS.mkdir()
     FILE_NEXT_FAKE_IP.write_text(FIRST_FAKE_IP)
