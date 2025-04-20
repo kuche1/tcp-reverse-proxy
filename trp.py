@@ -82,6 +82,7 @@ def handle_client(client, client_addr, server_port, fake_ip_lock):
                 break
 
             server.setblocking(True)
+            print(f'{client_addr}: client -> server')
             server.sendall(data)
             server.setblocking(False)
         
@@ -94,6 +95,7 @@ def handle_client(client, client_addr, server_port, fake_ip_lock):
                 break
 
             client.setblocking(True)
+            print(f'{client_addr}: server -> client')
             client.sendall(data)
             client.setblocking(False)
         
