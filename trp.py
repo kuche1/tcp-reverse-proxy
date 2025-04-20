@@ -77,7 +77,7 @@ def handle_client_2(client, client_addr, server_port, fake_ip_lock):
     try:
         server.connect(('localhost', server_port))
     except ConnectionRefusedError:
-        print(f'{client_addr}: -~->x server refused connection')
+        print(f'{client_addr}: -~xx server refused connection')
         return
 
     running = True
