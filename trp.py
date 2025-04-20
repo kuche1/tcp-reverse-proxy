@@ -68,8 +68,9 @@ def main(
     sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 
     if encrypt:
-        # ssl_context = ssl.create_default_context()
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER) # Auto-negotiate the highest protocol version that both the client and server support, and configure the context server-side connections.
+        # ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
 
         ssl_context.load_cert_chain(
             certfile=certfile, # cert.pem / certificate.crt
@@ -81,7 +82,7 @@ def main(
             server_side=True,
         )
 
-        ## this code no longer works
+        ## this code no longer works with python 3.13.2
         # sock = ssl.wrap_socket(
         #     sock,
         #     keyfile=keyfile,
@@ -132,7 +133,8 @@ def handle_client_2(client, client_addr, server_port:int, server_encrypted:bool,
         # ssl_context = ssl.create_default_context()
         # # ssl_context = ssl._create_unverified_context() # this SHOULD work when connecting to server with selfsigned cert (not tested)
 
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        # ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ssl_context = ssl.create_default_context()
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
 
