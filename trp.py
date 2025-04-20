@@ -32,7 +32,7 @@ def run_from_cmdline():
 
     # parser.add_argument('server_host', type=str, help='host of server') # host HAS TO BE localhost, otherwise the 127.x.x.x trick will not work
     parser.add_argument('server_port',        type=int,                      help='port of server')
-    parser.add_argument('--server_encrypted',           action='store_true', help='weather server uses plain or encrypted TCP')
+    parser.add_argument('--server-encrypted',           action='store_true', help='weather server uses plain or encrypted TCP')
 
     parser.add_argument('--encrypt',            action='store_true', help='weather to encrypt the connection between the client and the reverse proxy')
     parser.add_argument('--keyfile',  type=str,                      help='keyfile to use for encryption, example: privkey.pem')
@@ -131,8 +131,8 @@ def handle_client_2(client, client_addr, server_port:int, server_encrypted:bool,
     if server_encrypted:
         ssl_context = ssl.create_default_context()
 
-        sock = ssl_context.wrap_socket(
-            sock,
+        server = ssl_context.wrap_socket(
+            server,
             server_side=False,
         )
 
