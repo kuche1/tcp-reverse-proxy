@@ -1,11 +1,9 @@
 #! /usr/bin/env python3
 
 # TODO
-# add support for encrypted TCP dest (wtf why is this working, need to run some tests)
 # limit bandwidth
 # handle SIGTERM
 # fix (? is this still a problem ?): socket close happens super late
-# add support for server that is encrypted
 
 import argparse
 from socket import socket, SOL_SOCKET, SO_REUSEADDR, SHUT_RDWR
@@ -27,33 +25,46 @@ EMERGENCY_FAKE_IP = '127.0.0.1'
 def run_from_cmdline():
     parser = argparse.ArgumentParser('TCP reverse proxy')
 
-    parser.add_argument('bind_host', type=str, help='host to bind to; leave empty for all')
-    parser.add_argument('bind_port', type=int, help='port to bind to')
+    # server host must be localhost, otherwise the 127.x.x.x trick is not going to work
+    parser.add_argument('server_port', type=int, help='port of server that the reverse proxy is to connect to')
+    parser.add_argument('server_ssl',  type=str, help='weather or not the proxy should attempt to connect to the server using an encrypted connection')
 
-    # parser.add_argument('server_host', type=str, help='host of server') # host HAS TO BE localhost, otherwise the 127.x.x.x trick will not work
-    parser.add_argument('server_port',        type=int,                      help='port of server')
-    parser.add_argument('--server-encrypted',           action='store_true', help='weather server uses plain or encrypted TCP')
-
-    parser.add_argument('--encrypt',            action='store_true', help='weather to encrypt the connection between the client and the reverse proxy')
-    parser.add_argument('--keyfile',  type=str,                      help='keyfile to use for encryption, example: privkey.pem')
-    parser.add_argument('--certfile', type=str,                      help='certfile to use for encryption, example: cert.pem')
+    parser.add_argument('proxy_host',          type=str, help='host to bind proxy server to; leave empty for all')
+    parser.add_argument('proxy_port',          type=int, help='port to bind proxy server to')
+    parser.add_argument('proxy_ssl',           type=str, help='weather or not the proxy is to use an encrypted connection for clients to connect to')
+    parser.add_argument('proxy_ssl_keyfile',   type=str, help='keyfile (privkey.pem) for the ssl connection')
+    parser.add_argument('proxy_ssl_certfile',  type=str, help='certfile (cert.pem) for the ssl connection')
 
     args = parser.parse_args()
 
-    if args.encrypt:
-        if (args.keyfile is None) or (args.certfile is None):
-            print(f'if you want encryption you need to specify both keyfile and certfile')
-            sys.exit(1)
+    if args.server_ssl == 'server_ssl':
+        server_ssl = True
+    elif args.server_ssl == 'server_no_ssl':
+        server_ssl = False
+    else:
+        print(f'the only valid options for `server_ssl` are `server_ssl` and `server_no_ssl`; got invalid option `{args.server_ssl}`')
+        sys.exit(1)
+
+    if args.proxy_ssl == 'proxy_ssl':
+        proxy_ssl = True
+    elif args.proxy_ssl == 'proxy_no_ssl':
+        proxy_ssl = False
+    else:
+        print(f'the only valid options for `proxy_ssl` are `proxy_ssl` and `proxy_no_ssl`; got invalid option `{args.proxy_ssl}`')
+        sys.exit(1)
 
     main(
-        (args.bind_host, args.bind_port),
-        args.server_port, args.server_encrypted,
-        args.encrypt, args.keyfile, args.certfile)
+        args.server_port, server_ssl,
+
+        (args.proxy_host, args.proxy_port),
+        proxy_ssl, args.proxy_ssl_keyfile, args.proxy_ssl_certfile,
+    )
 
 def main(
-        bind_addr,
-        server_port:int, server_encrypted:bool,
-        encrypt:bool, keyfile:str|None, certfile:str|None
+        server_port:int, server_ssl:bool,
+
+        proxy_addr:tuple[str,int],
+        proxy_ssl:bool, proxy_ssl_keyfile:str, proxy_ssl_certfile:str,
     ):
 
     shutil.rmtree(FOLDER_IP_TRANSLATIONS, ignore_errors=True)
@@ -67,15 +78,15 @@ def main(
 
     sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 
-    if encrypt:
+    if proxy_ssl:
         # ssl_context = ssl.create_default_context() # ssl.SSLError: Cannot create a server socket with a PROTOCOL_TLS_CLIENT context (_ssl.c:799)
         # ssl_context.check_hostname = False
 
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 
         ssl_context.load_cert_chain(
-            certfile=certfile, # cert.pem / certificate.crt
-            keyfile=keyfile, # privkey.pem / private.key
+            certfile=proxy_ssl_certfile, # cert.pem / certificate.crt
+            keyfile=proxy_ssl_keyfile, # privkey.pem / private.key
         )
 
         sock = ssl_context.wrap_socket(
@@ -91,7 +102,7 @@ def main(
         #     server_side=True,
         # )
 
-    sock.bind(bind_addr)
+    sock.bind(proxy_addr)
 
     sock.listen()
 
@@ -106,18 +117,18 @@ def main(
             print(f'could not accept: Exception: {err}')
             continue
 
-        Thread(target=handle_client, args=(con, con_addr, server_port, server_encrypted, fake_ip_lock)).start()
+        Thread(target=handle_client, args=(con, con_addr, server_port, server_ssl, fake_ip_lock)).start()
     
     sock.close()
 
-def handle_client(client, client_addr, server_port:int, server_encrypted:bool, fake_ip_lock):
+def handle_client(client, client_addr, server_port:int, server_ssl:bool, fake_ip_lock):
     try:
-        handle_client_2(client, client_addr, server_port, server_encrypted, fake_ip_lock)
+        handle_client_2(client, client_addr, server_port, server_ssl, fake_ip_lock)
     finally:
         client.shutdown(SHUT_RDWR)
         client.close()
 
-def handle_client_2(client, client_addr, server_port:int, server_encrypted:bool, fake_ip_lock):
+def handle_client_2(client, client_addr, server_port:int, server_ssl:bool, fake_ip_lock):
     client_ip, _client_port = client_addr
 
     print(f'{client_addr}: ---> connected')
@@ -130,7 +141,7 @@ def handle_client_2(client, client_addr, server_port:int, server_encrypted:bool,
 
     server.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 
-    if server_encrypted:
+    if server_ssl:
         # ssl_context = ssl.create_default_context()
         # # ssl_context = ssl._create_unverified_context() # this SHOULD work when connecting to server with selfsigned cert (not tested)
 
