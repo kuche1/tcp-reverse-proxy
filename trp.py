@@ -13,6 +13,8 @@ from threading import Thread, Lock
 from pathlib import Path
 import shutil
 import select
+import ssl
+import sys
 
 RECV_LEN = 1024 * 1 # 1KiB
 
@@ -28,13 +30,24 @@ def run_from_cmdline():
     parser.add_argument('bind_host', type=str, help='host to bind to; leave empty for all')
     parser.add_argument('bind_port', type=int, help='port to bind to')
 
-    # parser.add_argument('server_host', type=str, help='host of server') # host HAS TO BE localhost
+    # parser.add_argument('server_host', type=str, help='host of server') # host HAS TO BE localhost, otherwise the 127.x.x.x trick will not work
     parser.add_argument('server_port', type=int, help='port of server')
 
-    args = parser.parse_args()
-    main((args.bind_host, args.bind_port), args.server_port)
+    parser.add_argument('--encrypt',            action='store_true', help='weather to encrypt the connection between the client and the reverse proxy')
+    parser.add_argument('--keyfile',  type=str,                      help='keyfile to use for encryption')
+    parser.add_argument('--certfile', type=str,                      help='certfile to use for encryption')
 
-def main(bind_addr, server_port):
+    args = parser.parse_args()
+
+    if args.encrypt:
+        if (args.keyfile is None) or (args.certfile is None):
+            print(f'if you want encryption you need to specify both keyfile and certfile')
+            sys.exit(1)
+
+    main((args.bind_host, args.bind_port), args.server_port, args.encrypt, args.keyfile, args.certfile)
+
+def main(bind_addr, server_port:int, encrypt:bool, keyfile:str|None, certfile:str|None):
+
     shutil.rmtree(FOLDER_IP_TRANSLATIONS, ignore_errors=True)
 
     FOLDER_IP_TRANSLATIONS.mkdir()
@@ -43,12 +56,37 @@ def main(bind_addr, server_port):
     fake_ip_lock = Lock()
 
     sock = socket()
+
     sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+
+    if encrypt:
+        # ssl_context = ssl.create_default_context()
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER) # Auto-negotiate the highest protocol version that both the client and server support, and configure the context server-side connections.
+
+        ssl_context.load_cert_chain(
+            certfile=certfile, # cert.pem
+            keyfile=keyfile, # key.pem
+        )
+
+        sock = ssl_context.wrap_socket(
+            sock,
+            server_side=True,
+        )
+
+        ## this code no longer works
+        # sock = ssl.wrap_socket(
+        #     sock,
+        #     keyfile=keyfile,
+        #     certfile=certfile,
+        #     server_side=True,
+        # )
+
     sock.bind(bind_addr)
+
     sock.listen()
 
     while True:
-        con, con_addr = sock.accept()
+        con, con_addr = sock.accept() # TODO ssl.SSLError # TODO we could actually try to accept a regular connection, and if that doesn't work, we could try to wrap the socket then accept again
         Thread(target=handle_client, args=(con, con_addr, server_port, fake_ip_lock)).start()
     
     sock.close()
