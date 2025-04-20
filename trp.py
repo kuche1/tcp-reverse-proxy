@@ -62,9 +62,16 @@ def handle_client(client, client_addr, server_port, fake_ip_lock):
     print(f'{client_addr}: -~-> faked ip {client_ip_faked}')
 
     server = socket()
+
     server.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+
     server.bind((client_ip_faked, 0))
-    server.connect(('localhost', server_port))
+
+    try:
+        server.connect(('localhost', server_port))
+    except ConnectionRefusedError:
+        print(f'{client_addr}: -x-> server refused connection')
+        return
 
     running = True
 
