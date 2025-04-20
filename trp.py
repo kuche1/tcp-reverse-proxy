@@ -7,13 +7,13 @@
 # clean the ips on startup
 
 import argparse
-from socket import socket, SOL_SOCKET, SO_REUSEADDR, SHUT_RDWR
+from socket import socket, SOL_SOCKET, SO_REUSEADDR, SHUT_RDWR, MSG_DONTWAIT
 from threading import Thread, Lock
 import time
 from pathlib import Path
 import shutil
 
-RECV_LEN = 1024 * 1024
+RECV_LEN = 1024 * 1024 # in bytes
 LOOP_SLEEP = 0 # even a sleep of "0" seconds is enough to reduce the CPU usage from 8% to 0.6%
 
 FOLDER_IP_TRANSLATIONS = Path(__file__).parent / 'ip-translations'
@@ -67,40 +67,32 @@ def handle_client(client, client_addr, server_port, fake_ip_lock):
     server.bind((client_ip_faked, 0))
     server.connect(('localhost', server_port))
 
-    # TODO make the recv and send nonblocking/blocking instead of setting the whole thing here
-    client.setblocking(False)
-    server.setblocking(False)
-
     while True:
 
         try:
-            data = client.recv(RECV_LEN)
+            data = client.recv(RECV_LEN, MSG_DONTWAIT)
         except BlockingIOError:
             pass
         else:
             if len(data) == 0: # disconnect
                 break
 
-            server.setblocking(True)
-            print(f'{client_addr}: client -.-> server [{len(data)}]')
+            print(f'{client_addr}: {len(data)} -~->')
             server.sendall(data)
-            print(f'{client_addr}: client -v-> server')
-            server.setblocking(False)
+            print(f'{client_addr}: {len(data)} -v->')
         
         try:
-            data = server.recv(RECV_LEN)
+            data = server.recv(RECV_LEN, MSG_DONTWAIT)
         except BlockingIOError:
             pass
         else:
             if len(data) == 0: # disconnect
                 break
 
-            client.setblocking(True)
-            print(f'{client_addr}: server -.-> client [{len(data)}]')
+            print(f'{client_addr}: <-~- {len(data)}')
             client.sendall(data)
-            print(f'{client_addr}: server -v-> client')
-            client.setblocking(False)
-        
+            print(f'{client_addr}: <-v- {len(data)}')
+
         time.sleep(LOOP_SLEEP)
 
     client.shutdown(SHUT_RDWR)
