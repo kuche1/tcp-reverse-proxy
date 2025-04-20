@@ -160,7 +160,7 @@ def handle_client_2(client, client_addr, server_port:int, server_ssl:bool, fake_
     try:
         server.connect(('localhost', server_port))
     except ConnectionRefusedError:
-        print(f'{client_addr}: -~xx server refused connection')
+        print(f'{client_addr}: <x~x server refused connection')
         return
 
     running = True
@@ -196,7 +196,7 @@ def handle_client_2(client, client_addr, server_port:int, server_ssl:bool, fake_
     server.shutdown(SHUT_RDWR)
     server.close()
 
-    print(f'{client_addr}: -x-> disconnect')
+    print(f'{client_addr}: <xx> disconnect')
 
 def get_client_fake_ip(client_ip, lock):
     file_client = FOLDER_IP_TRANSLATIONS / client_ip
