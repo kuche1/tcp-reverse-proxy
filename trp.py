@@ -4,8 +4,6 @@
 # add support for encrypted TCP dest
 # limit bandwidth
 # handle SIGTERM
-# clean the ips on startup
-# use select
 # fix: socket close happens super late
 # fix: cpu usage is too high
 
@@ -15,9 +13,9 @@ from threading import Thread, Lock
 import time
 from pathlib import Path
 import shutil
+import select
 
-RECV_LEN = 1024 * 2 # 2KiB
-LOOP_SLEEP = 0.001
+RECV_LEN = 1024 * 1 # 1KiB
 
 FOLDER_IP_TRANSLATIONS = Path(__file__).parent / 'ip-translations'
 FILE_NEXT_FAKE_IP = FOLDER_IP_TRANSLATIONS / 'next-available'
@@ -70,33 +68,35 @@ def handle_client(client, client_addr, server_port, fake_ip_lock):
     server.bind((client_ip_faked, 0))
     server.connect(('localhost', server_port))
 
-    while True:
+    running = True
 
-        try:
-            data = client.recv(RECV_LEN, MSG_DONTWAIT)
-        except BlockingIOError:
-            pass
-        else:
-            if len(data) == 0: # disconnect
+    while running:
+
+        read_list = [client, server]
+        write_list = [] # [client, server]
+        except_list = [] # [client, server]
+        readable, _writeble, errored = select.select(read_list, write_list, except_list)
+        # ideally we would check if the target socket is writable
+
+        for sock in readable:
+            data = sock.recv(RECV_LEN)
+
+            if len(data) == 0:
+
+                target = 'client' if sock == client else 'server'
+                print(f'{client_addr}: connection closed by {target}')
+
+                running = False
                 break
 
-            print(f'{client_addr}: [{len(data)} B] -~-> server')
-            server.sendall(data)
-            print(f'{client_addr}: [{len(data)} B] -v-> server')
-        
-        try:
-            data = server.recv(RECV_LEN, MSG_DONTWAIT)
-        except BlockingIOError:
-            pass
-        else:
-            if len(data) == 0: # disconnect
-                break
-
-            print(f'{client_addr}: <-~- [{len(data)} B] server')
-            client.sendall(data)
-            print(f'{client_addr}: <-v- [{len(data)} B] server')
-
-        time.sleep(LOOP_SLEEP)
+            if sock == client:
+                print(f'{client_addr}: [{len(data)} B] -~-> server')
+                server.sendall(data)
+                print(f'{client_addr}: [{len(data)} B] -v-> server')
+            else:
+                print(f'{client_addr}: <-~- [{len(data)} B] server')
+                client.sendall(data)
+                print(f'{client_addr}: <-v- [{len(data)} B] server')
 
     client.shutdown(SHUT_RDWR)
     client.close()
