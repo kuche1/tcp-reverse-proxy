@@ -68,9 +68,10 @@ def main(
     sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 
     if encrypt:
-        # ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False
+        # ssl_context = ssl.create_default_context() # ssl.SSLError: Cannot create a server socket with a PROTOCOL_TLS_CLIENT context (_ssl.c:799)
+        # ssl_context.check_hostname = False
+
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 
         ssl_context.load_cert_chain(
             certfile=certfile, # cert.pem / certificate.crt
