@@ -174,7 +174,11 @@ def handle_client_2(client, client_addr, server_port:int, server_ssl:bool, fake_
         # ideally we would check if the target socket is writable
 
         for sock in readable:
-            data = sock.recv(RECV_LEN)
+
+            try:
+                data = sock.recv(RECV_LEN)
+            except ConnectionResetError:
+                data = b''
 
             if len(data) == 0:
 
