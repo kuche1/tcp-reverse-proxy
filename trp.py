@@ -178,8 +178,10 @@ def handle_client_2(client, client_addr, server_port:int, server_ssl:bool, fake_
 
             if len(data) == 0:
 
-                target = 'client' if sock == client else 'server'
-                print(f'{client_addr}: connection closed by {target}')
+                if sock == client:
+                    print(f'{client_addr}: -x-> connection closed by client')
+                else:
+                    print(f'{client_addr}: <-x- connection closed by server')
 
                 running = False
                 break
