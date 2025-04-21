@@ -195,7 +195,11 @@ def handle_client_2(client, client_addr, server_port:int, server_ssl:bool, fake_
                 client.sendall(data)
                 print(f'{client_addr}: <~v~ recv {len(data)}[B] from server')
 
-    server.shutdown(SHUT_RDWR)
+    try:
+        server.shutdown(SHUT_RDWR)
+    except OSError:
+        pass
+
     server.close()
 
     print(f'{client_addr}: <xx> disconnect')
