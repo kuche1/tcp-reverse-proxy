@@ -4,6 +4,7 @@
 # limit bandwidth
 # handle SIGTERM
 # I really wanted to use the trick where we can peek the msg, then send whatever be sent, then recv the actually sent stuff, but I got (ValueError: non-zero flags not allowed in calls to recv() on <class 'ssl.SSLSocket'>)
+# there is DEFINETELY something wrong with this code: sometimes when I click a link, instead of getting whatever I should, the page just loads indefinetely (do note that I did an update, so that might have fixed the problem)
 
 import argparse
 from socket import socket, SOL_SOCKET, SO_REUSEADDR, SHUT_RDWR
